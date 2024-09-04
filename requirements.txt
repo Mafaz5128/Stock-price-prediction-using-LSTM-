@@ -1,11 +1,7 @@
-﻿numpy
-pandas
-Pillow
-matplotlib
 streamlit
-keras
-tensorflow
-pandas_datareader
 yfinance
-sklearn
+numpy
+pandas
 scikit-learn
+tensorflow
+matplotlib
