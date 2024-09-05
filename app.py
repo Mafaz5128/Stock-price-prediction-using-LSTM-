@@ -42,8 +42,29 @@ def build_model(time_step):
     model.compile(optimizer='adam', loss='mean_squared_error')
     return model
 
+def predict_next_24_hours(model, last_data, scaler):
+    predictions = []
+    directions = []
+    input_data = last_data.copy()
+
+    for _ in range(24):  # Predict for the next 24 hours
+        pred = model.predict(input_data)
+        pred_unscaled = scaler.inverse_transform(pred)
+        predictions.append(pred_unscaled[0][0])
+
+        # Determine direction: up (1) if the price is predicted to rise, down (0) otherwise
+        last_price = scaler.inverse_transform(input_data[0])[-1][0]
+        direction = "UP" if pred_unscaled[0][0] > last_price else "DOWN"
+        directions.append(direction)
+
+        # Update input data by appending the predicted price
+        new_input = np.append(input_data[0][1:], pred, axis=0)
+        input_data = new_input.reshape(1, -1, 1)
+
+    return predictions, directions
+
 def main():
-    st.title('Stock Price Prediction with Next-Day Direction')
+    st.title('24-Hour Stock Price Prediction with Direction')
     
     ticker = st.text_input('Enter Stock Ticker:', 'AMZN')
     data = load_data(ticker)
@@ -65,49 +86,36 @@ def main():
         model = build_model(time_step)
         model.fit(X_train, y_train, batch_size=64, epochs=50, verbose=1)
     
-        train_predict = model.predict(X_train)
-        test_predict = model.predict(X_test)
-    
-        train_predict = scaler.inverse_transform(train_predict)
-        test_predict = scaler.inverse_transform(test_predict)
-        y_train = scaler.inverse_transform([y_train])
-        y_test = scaler.inverse_transform([y_test])
-    
         st.write('Model Training Complete!')
-    
-        # Plotting the predictions vs actual stock prices
+
+        # Predict next 24 hours based on the last 60 data points
+        last_60_days = scaled_data[-time_step:]
+        last_60_days = last_60_days.reshape(1, -1, 1)
+        next_24_hours, next_24_directions = predict_next_24_hours(model, last_60_days, scaler)
+        
+        # Create a dataframe for predictions and directions
+        future_times = pd.date_range(data.index[-1], periods=24, freq='H')
+        prediction_df = pd.DataFrame({
+            'Date/Time': future_times,
+            'Predicted Price': next_24_hours,
+            'Predicted Direction': next_24_directions
+        })
+
+        st.subheader('Next 24-Hour Predictions')
+        st.dataframe(prediction_df)
+
+        # Plotting the predictions
         fig, ax = plt.subplots(figsize=(16, 8))
         ax.plot(data.index, data['Close'], label='Actual Stock Price')
-    
-        train_index = data.index[time_step+1:train_size]
-        test_index = data.index[train_size+time_step+1:]
-    
-        ax.plot(train_index, train_predict, label='Training Prediction')
-        ax.plot(test_index, test_predict, label='Testing Prediction')
-    
-        ax.set_title('Stock Price Prediction')
-        ax.set_xlabel('Date')
+        ax.plot(future_times, next_24_hours, label='Next 24-Hour Prediction', color='orange', linestyle='--')
+
+        ax.set_title('Stock Price Prediction for the Next 24 Hours')
+        ax.set_xlabel('Date/Time')
         ax.set_ylabel('Stock Price')
         ax.legend()
-    
+
         st.pyplot(fig)
-    
-        # Next-Day Price Prediction
-        last_60_days = scaled_data[-time_step:]  # Take last 60 days
-        last_60_days = last_60_days.reshape(1, -1, 1)  # Reshape for LSTM input
-        next_day_prediction = model.predict(last_60_days)
-        next_day_prediction = scaler.inverse_transform(next_day_prediction)  # Inverse transform to original scale
-    
-        st.write(f"Predicted Next-Day Price: ${next_day_prediction[0][0]:.2f}")
-    
-        # Predicting Direction (Up/Down)
-        last_close_price = data['Close'].values[-1]  # Last closing price
-        if next_day_prediction[0][0] > last_close_price:
-            direction = "UP"
-        else:
-            direction = "DOWN"
-    
-        st.write(f"Predicted Direction for the Next Day: {direction}")
-    
+
 if __name__ == "__main__":
     main()
+
