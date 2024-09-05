@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 # Define functions for loading data, training model, and making predictions
 def load_data(ticker):
     try:
-        data = yf.download(tickers=ticker, period='3mo', interval='1h')
+        data = yf.download(tickers=ticker, period='6mo', interval='1h')
         data['Direction'] = np.where(data['Close'] > data['Open'], 1, 0)
         return data
     except Exception as e:
