@@ -67,7 +67,7 @@ def main():
     st.title('Next 24-Hour Stock Price and Direction Prediction')
 
     # Sidebar for ticker input
-    ticker = st.sidebar.text_input('Enter Stock Ticker:', 'AMZN')
+    ticker = st.sidebar.text_input('Enter Stock Type:', 'AMZN')
 
     # Fetch and display current data
     data = load_data(ticker)
@@ -93,7 +93,7 @@ def main():
         model = build_model(time_step)
         model.fit(X_train, y_train, batch_size=64, epochs=50, verbose=1)
         
-        st.write('Model Training Complete!')
+
 
         # Next 24-hour predictions
         last_60_days = scaled_data[-time_step:]
