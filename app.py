@@ -64,7 +64,7 @@ def predict_next_24_hours(model, last_data, scaler):
     return predictions, directions
 
 def main():
-    st.title('Stock Price Dashboard with 24-Hour Prediction')
+    st.title('Next 24-Hour Stock Price and Direction Prediction')
 
     # Sidebar for ticker input
     ticker = st.sidebar.text_input('Enter Stock Ticker:', 'AMZN')
@@ -108,13 +108,12 @@ def main():
             'Predicted Direction': next_24_directions
         })
 
-        # Display current stock price and next 24-hour predictions
+        # Display next 24-hour predictions
         st.subheader(f'Predicted Stock Prices for the Next 24 Hours for {ticker}')
         st.dataframe(prediction_df)
 
-        # Plot: Actual vs Predicted Prices
+        # Plot: Next 24-Hour Predicted Prices
         fig, ax = plt.subplots(figsize=(16, 8))
-        ax.plot(data.index, data['Close'], label='Actual Stock Price', color='blue')
         ax.plot(future_times, next_24_hours, label='Next 24-Hour Predictions', color='orange', linestyle='--')
         ax.set_title(f'{ticker} Stock Price Prediction for Next 24 Hours')
         ax.set_xlabel('Date/Time')
