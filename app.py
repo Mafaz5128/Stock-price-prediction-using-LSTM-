@@ -43,9 +43,9 @@ def build_model(time_step):
     return model
 
 def main():
-    st.title('Stock Price Prediction with LSTM')
+    st.title('Stock Price Prediction')
     
-    ticker = st.text_input('Enter Stock Ticker:', 'AMZN')
+    ticker = st.text_input('Enter Stock Type:', 'AMZN')
     data = load_data(ticker)
     
     if not data.empty:
