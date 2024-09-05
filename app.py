@@ -64,36 +64,43 @@ def predict_next_24_hours(model, last_data, scaler):
     return predictions, directions
 
 def main():
-    st.title('24-Hour Stock Price Prediction with Direction')
-    
-    ticker = st.text_input('Enter Stock Ticker:', 'AMZN')
+    st.title('Stock Price Dashboard with 24-Hour Prediction')
+
+    # Sidebar for ticker input
+    ticker = st.sidebar.text_input('Enter Stock Ticker:', 'AMZN')
+
+    # Fetch and display current data
     data = load_data(ticker)
     
     if not data.empty:
+        st.subheader(f'Current Prices for {ticker}')
+        st.write(data.tail())  # Display last few records from the data for current prices
+        
+        # Preprocess data for model
         scaled_data, scaler = preprocess_data(data)
-    
         time_step = 60
         train_size = int(len(scaled_data) * 0.8)
         train_data = scaled_data[:train_size, :]
         test_data = scaled_data[train_size:, :]
-    
+
         X_train, y_train = create_dataset(train_data, time_step)
         X_test, y_test = create_dataset(test_data, time_step)
-    
+
         X_train = X_train.reshape(X_train.shape[0], X_train.shape[1], 1)
         X_test = X_test.reshape(X_test.shape[0], X_test.shape[1], 1)
-    
+
+        # Build and train the LSTM model
         model = build_model(time_step)
         model.fit(X_train, y_train, batch_size=64, epochs=50, verbose=1)
-    
+        
         st.write('Model Training Complete!')
 
-        # Predict next 24 hours based on the last 60 data points
+        # Next 24-hour predictions
         last_60_days = scaled_data[-time_step:]
         last_60_days = last_60_days.reshape(1, -1, 1)
         next_24_hours, next_24_directions = predict_next_24_hours(model, last_60_days, scaler)
-        
-        # Create a dataframe for predictions and directions
+
+        # Dataframe for next 24 hours
         future_times = pd.date_range(data.index[-1], periods=24, freq='H')
         prediction_df = pd.DataFrame({
             'Date/Time': future_times,
@@ -101,21 +108,32 @@ def main():
             'Predicted Direction': next_24_directions
         })
 
-        st.subheader('Next 24-Hour Predictions')
+        # Display current stock price and next 24-hour predictions
+        st.subheader(f'Predicted Stock Prices for the Next 24 Hours for {ticker}')
         st.dataframe(prediction_df)
 
-        # Plotting the predictions
+        # Plot: Actual vs Predicted Prices
         fig, ax = plt.subplots(figsize=(16, 8))
-        ax.plot(data.index, data['Close'], label='Actual Stock Price')
-        ax.plot(future_times, next_24_hours, label='Next 24-Hour Prediction', color='orange', linestyle='--')
-
-        ax.set_title('Stock Price Prediction for the Next 24 Hours')
+        ax.plot(data.index, data['Close'], label='Actual Stock Price', color='blue')
+        ax.plot(future_times, next_24_hours, label='Next 24-Hour Predictions', color='orange', linestyle='--')
+        ax.set_title(f'{ticker} Stock Price Prediction for Next 24 Hours')
         ax.set_xlabel('Date/Time')
         ax.set_ylabel('Stock Price')
         ax.legend()
 
         st.pyplot(fig)
 
+        # Plot: Predicted Stock Direction
+        fig2, ax2 = plt.subplots(figsize=(16, 8))
+        ax2.plot(future_times, [1 if d == "UP" else 0 for d in next_24_directions], color='green', marker='o', linestyle='-')
+        ax2.set_title('Predicted Stock Direction (1: UP, 0: DOWN)')
+        ax2.set_xlabel('Date/Time')
+        ax2.set_ylabel('Direction')
+        ax2.set_yticks([0, 1])
+        ax2.set_yticklabels(['DOWN', 'UP'])
+        ax2.grid(True)
+
+        st.pyplot(fig2)
+
 if __name__ == "__main__":
     main()
-
