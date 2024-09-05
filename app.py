@@ -43,9 +43,9 @@ def build_model(time_step):
     return model
 
 def main():
-    st.title('Stock Price Prediction')
+    st.title('Stock Price Prediction with Next-Day Direction')
     
-    ticker = st.text_input('Enter Stock Type:', 'AMZN')
+    ticker = st.text_input('Enter Stock Ticker:', 'AMZN')
     data = load_data(ticker)
     
     if not data.empty:
@@ -63,7 +63,7 @@ def main():
         X_test = X_test.reshape(X_test.shape[0], X_test.shape[1], 1)
     
         model = build_model(time_step)
-        model.fit(X_train, y_train, batch_size=64, epochs=100, verbose=1)
+        model.fit(X_train, y_train, batch_size=64, epochs=50, verbose=1)
     
         train_predict = model.predict(X_train)
         test_predict = model.predict(X_test)
@@ -75,6 +75,7 @@ def main():
     
         st.write('Model Training Complete!')
     
+        # Plotting the predictions vs actual stock prices
         fig, ax = plt.subplots(figsize=(16, 8))
         ax.plot(data.index, data['Close'], label='Actual Stock Price')
     
@@ -84,12 +85,29 @@ def main():
         ax.plot(train_index, train_predict, label='Training Prediction')
         ax.plot(test_index, test_predict, label='Testing Prediction')
     
-        ax.set_title('Stock Price Prediction using LSTM')
+        ax.set_title('Stock Price Prediction')
         ax.set_xlabel('Date')
         ax.set_ylabel('Stock Price')
         ax.legend()
     
         st.pyplot(fig)
-
+    
+        # Next-Day Price Prediction
+        last_60_days = scaled_data[-time_step:]  # Take last 60 days
+        last_60_days = last_60_days.reshape(1, -1, 1)  # Reshape for LSTM input
+        next_day_prediction = model.predict(last_60_days)
+        next_day_prediction = scaler.inverse_transform(next_day_prediction)  # Inverse transform to original scale
+    
+        st.write(f"Predicted Next-Day Price: ${next_day_prediction[0][0]:.2f}")
+    
+        # Predicting Direction (Up/Down)
+        last_close_price = data['Close'].values[-1]  # Last closing price
+        if next_day_prediction[0][0] > last_close_price:
+            direction = "UP"
+        else:
+            direction = "DOWN"
+    
+        st.write(f"Predicted Direction for the Next Day: {direction}")
+    
 if __name__ == "__main__":
     main()
