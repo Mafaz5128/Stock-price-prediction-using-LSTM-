@@ -66,7 +66,7 @@ def predict_next_24_hours(model, last_data, scaler):
     return predictions, directions
 
 def main():
-    st.title('Next 24-Hour Stock Price and Direction Prediction')
+    st.title('Stock Price and Direction Prediction for Next 24-Hours')
 
     # Sidebar for ticker input
     ticker = st.sidebar.text_input('Enter Stock Ticker:', 'AMZN')
